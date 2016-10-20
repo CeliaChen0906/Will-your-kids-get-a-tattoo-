@@ -19,11 +19,14 @@ The first wave In-Home interview data we used here were collected around 1995 to
 ##Model Selections
 
 + Baseline Model
-  +Logistic Regression
+
+  + Logistic Regression
 
 + Optimization
-  +rgenoud
-  +Bartmachine
+
+  + rgenoud
+  
+  + Bartmachine
 
 ## Results
 
