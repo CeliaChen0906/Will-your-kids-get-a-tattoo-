@@ -1,0 +1,451 @@
+---
+title: "Data Mining Final Project"
+author: "Chen Zheyuan Celia"
+date: "December 22, 2015"
+output: html_document
+---
+##Will your kids get a tattoo?                   
+
+###Introduction                 
+This project is about using the social factors such as demographic information, personality and behavioral facts trying to explain and predict the chance of an adolescne who will get a tattoo in his or her younger age.                
+                
+The research used the national logitudinal study of Adolescent Health (Add Health) Wave 1 In-Home interview Data. Since it is a logitudinal data, there are further studies can be conducted on whether these kids who hasn't got a tattoo in their younger age would finally do it at certain point of theri lives.            
+                
+About Motivation? Well... I'm thinking about getting an awesome tattoo for a while, I want to get to know my people!
+                   
+###Data                             
+The research used the national longitudinal study of Adolescent Health (Add Health) 1st Wave In-Home Interview Data. The survey started in 1994, and followed up with a series of in-home interviews conducted in 1995, 1996, 2001-2002, 2007-2008, five waves have been conducted till now in total. It is one of the biggest and most comprehensive longitudinal surveys of adolescents.1 Itbegan with an in-school questionnaire to a nationally representative sample of 7th to 12th grade students, then they are followed up by a series of at-home interviews and involving with their parents, siblings, fellow students, even romantic partners.       
+          
+The Add Health includes data on respondents’ social, economic, psychological and physical well-being status on each wave. It covered a huge range of data from different aspects, which might influence a person’s well being. As the slogan on the website: Add Health – Social, Behavioral, and Biological Linkages across the Life Course.           
+              
+The first wave In-Home interview data we used here were collected around 1995 to 1996, including 6,054 observations and over 2,000 variables. The researches’ value hugely grew till the wave 3 till now since now the respondents have grown up. This research can be further continued by analyzing the following-up data on these adolescents.          
+
+```{r}
+load("21600-0001-Data.rda")
+d <- da21600.0001
+```
+
+###Data Laundry
+
+```{r}
+stopifnot(require(data.table))
+outlierReplace <- function(dataframe, cols, rows, newValue = NA) {
+  if(any(rows)){
+    set(dataframe, rows, cols, newValue)
+  }
+}
+```
+
+####Dependent Variables               
+__Here we cleaned our Dependent variable which we want to predict: whether the respondent has a permanent tattoo? 0 = NO, 1 = YES__     
+```{r}
+d$tattoo <- as.numeric(d$H1GH55)
+outlierReplace(d, "tattoo", which(d$tattoo > 5), NA)
+summary(d$tattoo)
+```
+
+####Independent Variables                      
+
+___Demographic and Family SES info___
+
+```{r}
+d$age <- 96 - d$H1GI1Y
+outlierReplace(d, "age", which(d$age < 3), NA)
+summary(d$age) #AGE
+
+d$race <- d$H1GI8
+outlierReplace(d, "race", which(d$race > 5), NA)
+d$race <- as.factor(d$race)
+summary(d$race)   ## This contains large amount of NA value, don't think I'll use it then...
+
+d$paedu <- d$PA12
+outlierReplace(d, "paedu", which(d$paedu > 9), NA)
+summary(d$paedu)  ## This is parents' education degree
+
+d$income <- d$PA55
+outlierReplace(d, "income", which(d$income > 9995), NA)
+summary(d$income)     ##This is family anuual income
+hist(d$income)
+d$lnincome <- log(d$income)
+hist(d$lnincome)   ##Look so much better, doesn't it?
+```
+
+
+___Behavioral Habits and Personality___      
+
+__Outdoor sports__           
+_During the past week, how many times did you go roller blading, roller-sketing, skate-boarding or bicycling?_
+```{r}
+d$outdoorsports <- as.numeric(d$H1DA4)
+outlierReplace(d, "outdoorsports", which(d$outdoorsports > 5), NA)
+summary(d$outdoorsports)
+```
+
+__Active sports__     
+_During the past week, how many times did you play an active sport, such as baseball, softball, basketball, soccer, swimming, or football?_
+```{r}
+d$activesports <- as.numeric(d$H1DA5)
+outlierReplace(d, "activesports", which(d$activesports > 5), NA)
+summary(d$activesports)
+```
+
+__Exercise__     
+_During the past week, how many times did you do exercise, such as jogging, walking karate, jumping rope, gymnastics or dancing?_
+```{r}
+d$exercise <- as.numeric(d$H1DA6)
+outlierReplace(d, "exercise", which(d$exercise > 5), NA)
+summary(d$exercise)
+```
+
+__Social__     
+_During the past week, how many times did you just hang out with friends_
+```{r}
+d$hangout <- as.numeric(d$H1DA7)
+outlierReplace(d, "hangout", which(d$hangout > 5), NA)
+summary(d$hangout)
+```
+
+__Motorcycle__     
+_During the past 12 months, how often did you ride a motorcycle?_
+```{r}
+d$motor <- as.numeric(d$H1GH40)
+outlierReplace(d, "motor", which(d$motor > 5), NA)
+summary(d$motor)
+```
+
+__seatbelt__     
+_How often do you wear a seatbelt when you are riding in or driving a car?_
+```{r}
+d$seatbelt <- as.numeric(d$H1GH42)
+outlierReplace(d, "seatbelt", which(d$seatbelt > 5), NA)
+summary(d$seatbelt)
+```
+
+__nightout__     
+_During the past 12 months, have you ever spent the night away from home without permission?_
+```{r}
+d$nightout <- as.numeric(d$H1GH53)
+outlierReplace(d, "nightout", which(d$nightout > 2), NA)
+summary(d$nightout)
+```
+
+__Cigarette__     
+_Have you ever tried cigarette smoking, even just 1 or 2 puffs?_
+```{r}
+d$cigapuff <- as.numeric(d$H1TO1)
+outlierReplace(d, "cigapuff", which(d$cigapuff > 5), NA)
+summary(d$cigapuff)
+```
+
+_Of your 3 best friends, how many smoke at least 1 cigarette a day?_
+```{r}
+d$fsmoking <- as.numeric(d$H1TO9)
+outlierReplace(d, "fsmoking", which(d$fsmoking > 5), NA)
+summary(d$fsmoking)
+```
+
+__Alcohol__     
+_Have you had a drink of beer, wine or liquor -- not just a sip or a taste of someone else's drink_
+```{r}
+d$drink <- as.numeric(d$H1TO12)
+outlierReplace(d, "drink", which(d$drink > 5), NA)
+summary(d$drink)
+```
+
+_During the past 12 months, on how many days did you drink alcohol?_
+```{r}
+d$drinkd <- as.numeric(d$H1TO15)
+outlierReplace(d, "drinkd", which(d$drinkd > 8), NA)
+d$drinkd <- 7 - d$drinkd  
+summary(d$drinkd) ## We got around half of sample in the dataset as missing value since this is not a appropriate question to many teens, APPARENTLY!! So I consider to use the other variable to represent! 
+```
+
+_Of your 3 best friends, how many drink alcohol at least once a month?_
+```{r}
+d$fdrinking <- as.numeric(d$H1TO29)
+outlierReplace(d, "fdrinking", which(d$fdrinking > 5), NA)
+summary(d$fdrinking) ## we only got 153 NA here. But if you don't drink a lot, I bet you won't have a lot of "go to hell" friends.
+```
+
+__Marijuana__     
+_During your life, how many times have you used marijuana?_
+```{r}
+d$weed <- as.numeric(d$H1TO31)
+outlierReplace(d, "weed", which(d$weed > 960), NA)
+summary(d$weed)
+```
+
+_During the past 30 days, how many times have you used marijuana?_
+```{r}
+d$weedm <- as.numeric(d$H1TO32)
+outlierReplace(d, "weedm", which(d$weedm > 960), NA)
+summary(d$weedm)  ## the problem is there are almost 5000 NA in both of these questions... Seems like we have to use social circle to solve this problem again.
+```
+
+_Of your 3 best friends, how many use marijuana at least once a month?_
+```{r}
+d$fweed <- as.numeric(d$H1TO33)
+outlierReplace(d, "fweed", which(d$fweed > 5), NA)
+summary(d$fweed)
+```
+
+All other drugs detailed variables shared the similar quesitons that there are always many NA since most of observation are 10+, not applicable to ask these questions.
+
+__Personality__     
+
+_When making decisions, you usually go with your "gut feeling" without thinking too much about the consequences of each alternative_
+```{r}
+d$gut <- as.numeric(d$H1PF16)
+outlierReplace(d, "gut", which(d$gut > 5), NA)
+d$gut <- 6 - d$gut
+summary(d$gut)
+```
+
+_When you are attempting to find a solution to a problem, you usually try to think of as many different ways to approach the problem as possible_
+```{r}
+d$sp <- as.numeric(d$H1PF19)
+outlierReplace(d, "sp", which(d$sp > 5), NA)
+d$sp <- 6 - d$sp
+summary(d$sp)
+```
+
+_You like yourself just the way you are_
+```{r}
+d$ly <- as.numeric(d$H1PF33)
+outlierReplace(d, "ly", which(d$ly > 5), NA)
+d$ly <- 6 - d$ly
+summary(d$ly)
+```
+
+_You feel socially accepted_
+```{r}
+d$sa <- as.numeric(d$H1PF35)
+outlierReplace(d, "sa", which(d$sa > 5), NA)
+d$sa <- 6 - d$sa
+summary(d$sa)
+```
+
+
+__Parent Relationship__ 
+                
+This is a bit complicated, but relationships with parents always have a huge impacts on everything when it comes to teens.          
+
+_Independence Parenting Index_                 
+This index is measured by a set of questions about whether the parents let the children make their own decisions.              
+
+```{r}
+d$I.hometime <- as.numeric(d$H1WP1)
+outlierReplace(d, "I.hometime", which(d$I.hometime > 2), NA)
+summary(d$I.hometime)
+
+d$I.friends <- as.numeric(d$H1WP2)
+outlierReplace(d, "I.friends", which(d$I.friends > 2), NA)
+summary(d$I.friends)
+
+d$I.outfit <- as.numeric(d$H1WP3)
+outlierReplace(d, "I.outfit", which(d$I.outfit > 2), NA)
+summary(d$I.outfit)
+
+d$I.tv <- as.numeric(d$H1WP4)
+outlierReplace(d, "I.tv", which(d$I.tv > 2), NA)
+summary(d$I.tv)
+
+d$I.tvp <- as.numeric(d$H1WP5)
+outlierReplace(d, "I.tvp", which(d$I.tvp > 2), NA)
+summary(d$I.tvp)
+
+d$I.sleep <- as.numeric(d$H1WP6)
+outlierReplace(d, "I.sleep", which(d$I.sleep > 2), NA)
+summary(d$I.sleep)
+
+d$I.eat <- as.numeric(d$H1WP7)
+outlierReplace(d, "I.eat", which(d$I.eat > 2), NA)
+summary(d$I.eat)
+
+stopifnot(require(RSNNS))
+d$I.momI <- 8 - as.numeric(d$H1PF2) #the higher of this number, the more agreement of "Your mother encourages you to be independent"
+d$I.zmomI <- normalizeData(d$I.momI, type = "0_1") * 3
+summary(d$I.zmomI)
+```
+
+
+__Generating the Independence Parenting Index___
+```{r}
+I.vars <- c("I.hometime", "I.friends", "I.outfit", "I.tv", "I.tvp", "I.sleep", "I.eat", "I.zmomI")
+sub.I <- d[ ,I.vars]
+
+stopifnot(require(psych))
+summary(alpha(sub.I)) #Here Cronbach's a is 0.59, even though it's less than 0.65 which is what we usually looking for, but it's still ok right ;) Cut him some slack plz!!!
+
+d$Inde <- rowSums(sub.I, na.rm = TRUE)
+d$Inde.s <- normalizeData(d$Inde, type = "norm")
+summary(d$Inde.s)
+
+```
+
+__Intimacy and Attention from Parents__      
+
+This index can tell us how often and how much the parents got interacted with the children. And how close and intimate the children feel the relationship with their parents.            
+
+```{r}
+d$c.dinner <- as.numeric(d$H1WP8)
+outlierReplace(d, "c.dinner", which(d$c.dinner > 10), NA)
+summary(d$c.dinner) ## now from 0 - 7 days for a week at least one of the parents would have dinner togetehr
+
+d$c.mom <- as.numeric(d$H1WP9)
+outlierReplace(d, "c.mom", which(d$c.mom > 5), NA)
+summary(d$c.mom) # from 1 to 5 how close you are to your mom
+
+d$c.momc <- as.numeric(d$H1WP10)
+outlierReplace(d, "c.momc", which(d$c.momc > 5), NA)
+summary(d$c.momc) # how much you mom cares about you from 1 to 5
+
+d$c.dad <- as.numeric(d$H1WP13)
+outlierReplace(d, "c.dad", which(d$c.dad > 5), NA)
+summary(d$c.dad) # from 1 to 5 how close you are to your dad, BTW there are 1947 NA
+
+d$c.dadc <- as.numeric(d$H1WP14)
+outlierReplace(d, "c.dadc", which(d$c.dadc > 5), NA)
+summary(d$c.dadc) # how much you dad cares about you from 1 to 5
+
+d$c.mshopping <- as.numeric(d$H1WP17A)
+outlierReplace(d, "c.mshopping", which(d$c.mshopping > 2), NA)
+summary(d$c.mshopping)
+
+d$c.dshopping <- as.numeric(d$H1WP18A)
+outlierReplace(d, "c.dshopping", which(d$c.dshopping > 2), NA)
+summary(d$c.dshopping)
+
+d$c.msport <- as.numeric(d$H1WP17B)
+outlierReplace(d, "c.msport", which(d$c.msport > 2), NA)
+summary(d$c.msport)
+
+d$c.dsport <- as.numeric(d$H1WP18B)
+outlierReplace(d, "c.dsport", which(d$c.dsport > 2), NA)
+summary(d$c.dsport)
+
+d$c.mreligious <- as.numeric(d$H1WP17C)
+outlierReplace(d, "c.mreligious", which(d$c.mreligious > 2), NA)
+summary(d$c.mreligious)
+
+d$c.dreligious <- as.numeric(d$H1WP18C)
+outlierReplace(d, "c.dreligious", which(d$c.dreligious > 2), NA)
+summary(d$c.dreligious)
+
+d$c.mdate <- as.numeric(d$H1WP17D)
+outlierReplace(d, "c.mdate", which(d$c.mdate > 2), NA)
+summary(d$c.mdate)
+
+d$c.ddate <- as.numeric(d$H1WP18D)
+outlierReplace(d, "c.ddate", which(d$c.ddate > 2), NA)
+summary(d$c.ddate)
+
+d$c.mevent <- as.numeric(d$H1WP17E)
+outlierReplace(d, "c.mevent", which(d$c.mevent > 2), NA)
+summary(d$c.mevent)
+
+d$c.devent <- as.numeric(d$H1WP18E)
+outlierReplace(d, "c.devent", which(d$c.devent > 2), NA)
+summary(d$c.devent)
+
+d$c.mpp <- as.numeric(d$H1WP17F)
+outlierReplace(d, "c.mpp", which(d$c.mpp > 2), NA)
+summary(d$c.mpp)
+
+d$c.dpp <- as.numeric(d$H1WP18F)
+outlierReplace(d, "c.dpp", which(d$c.dpp > 2), NA)
+summary(d$c.dpp)
+
+d$c.mar <- as.numeric(d$H1WP17G)
+outlierReplace(d, "c.mar", which(d$c.mar > 2), NA)
+summary(d$c.mar)
+
+d$c.dar <- as.numeric(d$H1WP18G)
+outlierReplace(d, "c.dar", which(d$c.dar > 2), NA)
+summary(d$c.dar)
+
+d$c.mschool <- as.numeric(d$H1WP17H)
+outlierReplace(d, "c.mschool", which(d$c.mschool > 2), NA)
+summary(d$c.mschool)
+
+d$c.dschool <- as.numeric(d$H1WP18H)
+outlierReplace(d, "c.dschool", which(d$c.dschool > 2), NA)
+summary(d$c.dschool)
+
+d$c.mproject <- as.numeric(d$H1WP17I)
+outlierReplace(d, "c.mproject", which(d$c.mproject > 2), NA)
+summary(d$c.mproject)
+
+d$c.dproject <- as.numeric(d$H1WP18I)
+outlierReplace(d, "c.dproject", which(d$c.dproject > 2), NA)
+summary(d$c.dproject)
+
+d$c.mtalk <- as.numeric(d$H1WP17J)
+outlierReplace(d, "c.mtalk", which(d$c.mtalk > 2), NA)
+summary(d$c.mtalk)
+
+d$c.dtalk <- as.numeric(d$H1WP18J)
+outlierReplace(d, "c.dtalk", which(d$c.dtalk > 2), NA)
+summary(d$c.dtalk)  # Just spent an hour of my lifetime on Copy and Paste, hope it will be statistical significant... I'm using my next birthday wish quota here... Sweet Please...!!!
+
+```
+
+_Generating Attention(Intimacy) Parenting Index_            
+```{r}
+C.vars <- c("c.mom","c.momc","c.dad","c.dadc","c.dinner", "c.mshopping","c.dshopping", "c.msport", "c.dsport", "c.mreligious", "c.dreligious", "c.mdate", "c.mevent", "c.mpp", "c.mar", "c.mschool", "c.mproject", "c.mtalk",  "c.ddate", "c.devent", "c.dpp", "c.dar", "c.dschool", "c.dproject", "c.dtalk")
+sub.C <- d[ ,C.vars]
+
+stopifnot(require(psych))
+summary(alpha(sub.C)) #Yay!!! Cronbach's a looks yummy!  
+
+d$atten <- rowSums(sub.C, na.rm = TRUE)
+d$atten.s <- normalizeData(d$atten, type = "norm")
+summary(d$atten.s)
+```
+
+__Academic Performance__                    
+
+Is it true that only bad students or stupid people would get a tattoo? Let's find out!      
+       
+In general, I combined 4 major subjects grades to generate a new variable to represent adolescents’ academic performance. The 4 subjects are English or other language, mathematics, history or social studies and science. I recoded each variables as A = 4, B = 3, C = 2, D = 1, never taken = 0, and define all the other missing values and not applicable as NA. Then normalize the sum of these 4 subjects scores, ran a reliability analysis.                   
+
+Now let's take a look of how they are doing at school           
+```{r}
+d$english <- 5 - as.numeric(d$H1ED11) ## Ranging from 0 to 4, not take the subject to D, C, B, A
+outlierReplace(d, "english", which(d$english < 0), NA)
+summary(d$english)
+
+d$math <- 5 - as.numeric(d$H1ED12) ## Ranging from 0 to 4, not take the subject to D, C, B, A
+outlierReplace(d, "math", which(d$math < 0), NA)
+summary(d$math)
+
+d$ss <- 5 - as.numeric(d$H1ED13) ## Ranging from 0 to 4, not take the subject to D, C, B, A
+outlierReplace(d, "ss", which(d$ss < 0), NA)
+summary(d$ss)
+
+d$science <- 5 - as.numeric(d$H1ED14) ## Ranging from 0 to 4, not take the subject to D, C, B, A
+outlierReplace(d, "science", which(d$science < 0), NA)
+summary(d$science)
+
+A.vars <- c("english", "math", "ss", "science")
+sub.A <- d[ ,A.vars]
+
+stopifnot(require(psych))
+summary(alpha(sub.A)) # SEEMS LIKE THERE IS DIFFERENCE BETWEEN GOOD STUDENTS AND BAD STUDNETS... The difference is whether they're coding from 9 till now on a Sunday, it should be brunch time!!!
+
+d$acaps <- rowSums(sub.A, na.rm = TRUE)
+d$acap <- normalizeData(d$acaps, type = "norm")
+summary(d$acap)
+```
+
+###Initial Models                             
+      
+```{r}
+stopifnot(require(ISLR))
+
+indexes <- sample(1 : nrow(da), size = 0.2 * nrow(da))
+testing <- da[indexes, ]
+training <- da[-indexes, ]
+```
+
+###Final Models
