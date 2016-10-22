@@ -26,10 +26,12 @@ The first wave In-Home interview data we used here were collected around 1995 to
 
   + rgenoud
   
+  + glmpath
+  
   + Bartmachine
 
 ## Results
 
-It turned out most of my models just don’t give a really good prediciton. But according to the predition’s correct rate in the testing data, I still chose the logit model after the glmpath optimism, When step is 30, AIC is the smallest, we have the best prediction correct rate.
+According to the predition’s correct rate in the testing data, I chose the logit model after the glmpath optimism, When step is 30, AIC is the smallest, we have the best prediction correct rate.
 
-Whether a kid would get a tattoo can be influence by many factors, even many which haven’t been included in the dataset. And since this dataset is all teens around 16-20, really early stage of one’s life, the whole social-economic factors have a long-term effect, once they grow up, without the interruption from their parents, they might run to the tattoo studio as the first thing when they move out from their parents’ house. I would love to try to run this prediction model again in the follow-up data set.
+Whether a kid would get a tattoo can be influenced by many factors, even many which haven’t been included in the dataset. And since this dataset is all teens around 16-20, really early stage of one’s life, the whole social-economic factors have a long-term effect, once they grow up, without the interruption from their parents, they might run to the tattoo studio as the first thing when they move out from their parents’ house. I would love to try to run this prediction model again in the follow-up data set.
